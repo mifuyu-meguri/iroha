@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+#
 from terminalFormatting import *
 
 _ILLEGAL_CHARACTERS = str.maketrans({
@@ -29,23 +30,15 @@ _ILLEGAL_NAMES = [
     "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9", "LPT¹", "LPT²", "LPT³",
 ]
 
-def toAbsolutePath(path:str) -> str:
-    """
-    Note: pathlib.Path has no os.path.expandvars() equivalent.
-    """
-    if len(path) == 2 and path[0].isalpha() and path[1] == ":":
-        return path[0].upper() + ":\\"
-    return os.path.abspath(os.path.expandvars(path))
-
 def length_FE(string:str) -> int:
     return len(string.encode("utf-16-le")) // 2
 
-def toNameExtensions(name:str) -> tuple[str, str]:
+def sepNameExtensions(name:str) -> tuple[str, str]:
     suffixes = "".join(Path(name).suffixes)
     stem = name[:-len(suffixes)] if suffixes else name
     return stem, suffixes
 
-def toParentName(path:str) -> tuple[str, str]:
+def sepParentName(path:str) -> tuple[str, str]:
     """
     Prefers parent over name.
     """
@@ -56,7 +49,15 @@ def toParentName(path:str) -> tuple[str, str]:
     else:
         return path[0], path[1]
     
-def toValidUniqueName(fofiParentPath:str, fofiName:str) -> Path:
+def toAbsolutePath(path:str) -> str:
+    """
+    Note: pathlib.Path has no os.path.expandvars() equivalent.
+    """
+    if len(path) == 2 and path[0].isalpha() and path[1] == ":":
+        return path[0].upper() + ":\\"
+    return os.path.abspath(os.path.expandvars(path))
+    
+def toValidUniqueName(fofiParentPath:str, fofiName:str, unique:bool=True) -> str:
     fofiParentPath = Path(toAbsolutePath(fofiParentPath))
     while True:
         #
@@ -66,21 +67,22 @@ def toValidUniqueName(fofiParentPath:str, fofiName:str) -> Path:
             fofiName = "_"
         #
         fofiPath = fofiParentPath / fofiName
-        stem, suffixes = toNameExtensions(fofiName)
+        stem, suffixes = sepNameExtensions(fofiName)
         if stem.upper() in _ILLEGAL_NAMES:
             stem = "_" + stem[1:]
             fofiPath = fofiParentPath / ( stem + suffixes )
         #
-        nextIndex = 2
-        while fofiPath.exists():
-            fofiPath = fofiParentPath / f"{stem} ({nextIndex}){suffixes}"
-            nextIndex += 1
+        if unique:
+            nextIndex = 2
+            while fofiPath.exists():
+                fofiPath = fofiParentPath / f"{stem} ({nextIndex}){suffixes}"
+                nextIndex += 1
         #
         if length_FE(str(fofiPath)) > 259 or length_FE(fofiPath.name) > 255:
             xPrint(f"The final name is too long: {fofiPath}", BOLD + RED)
             fofiName = xInput("Enter new name (without extensions): ", BOLD + RED, BOLD + GREEN)
-            _, _suffixes = toNameExtensions(fofiName)
+            _, _suffixes = sepNameExtensions(fofiName)
             fofiName = fofiName if _suffixes else (fofiName + suffixes)
             continue
         #
-        return fofiPath
+        return str(fofiPath)

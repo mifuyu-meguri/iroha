@@ -33,7 +33,7 @@ def _sortFofis(path:str) -> tuple[list[os.DirEntry], int, bool]:
 def printTree(
     path:str,
     #
-    pathProperties:str=BOLD + WHITE,
+    pathProperties:str=BOLD,
     folderProperties:str=BOLD + RED,
     fileProperties:str=BOLD + GREEN,
     emptyFolderProperties:str=BOLD + YELLOW,
@@ -84,28 +84,27 @@ def saveTree(
     errorColour:str="rgb(255,255,0)",
 ) -> None:
     """
-    Saves file as html.
-    Overwrites by default.
+    Generates html with overwrite.
     Colours are CSS values like: "rgb(255,255,255)", "#ffffff", "white".
     """
     #
     def _walkTree(path:str, prefix:str) -> Iterator[str]:
-        ##
+        #
         fofis, folderCount, success = _sortFofis(path)
-        ##
+        #
         if not success:
             yield f'<p><span class="path">{escape(prefix + "└── ")}</span><span class="error">&lt;An Error Occurred&gt;</span></p>'
             return
         if not fofis:
             yield f'<p><span class="path">{escape(prefix + "└── ")}</span><span class="empty">&lt;Empty Folder&gt;</span></p>'
             return
-        ##
+        #
         lastIndex = len(fofis) - 1
         for index, fofi in enumerate(fofis):
             isLast = (index == lastIndex)
             branch = "└── " if isLast else "├── "
             childNnoPrefix = prefix + ("    " if isLast else "│   ")
-            ###
+            #
             if index < folderCount:
                 yield f'<p><span class="path">{escape(prefix + branch)}</span><span class="folder">{escape(fofi.name)}</span></p>'
                 yield from _walkTree(fofi.path, childNnoPrefix)
@@ -121,10 +120,11 @@ def saveTree(
     pathToSaveNnoParent = os.path.dirname(pathToSave)
     while not os.path.isdir(pathToSaveNnoParent):
         xPrint(f"{pathToSaveNnoParent} isn't a folder.", BOLD + RED)
-        pathToSaveNnoParent = xInput("Enter an existing folder path: ", BOLD + RED, BOLD + GREEN)
-        pathToSaveNnoParent = toAbsolutePath(pathToSaveNnoParent)
-        pathToSave = os.path.join(pathToSaveNnoParent, os.path.basename(pathToSave))
+        pathToSaveNnoParent = xInput("Enter an existing folder path to save to: ", BOLD + RED, BOLD + GREEN)
+        pathToSave = os.path.join( toAbsolutePath(pathToSaveNnoParent) , os.path.basename(pathToSave) )
     ##
+    parent, name = sepParentName(pathToSave)
+    pathToSave = toValidUniqueName(parent, name, False)
     with open(pathToSave, "w", encoding="utf-8", newline="\n") as file:
         file.write("<!doctype html>\n")
         file.write("<html>\n")
@@ -141,10 +141,10 @@ def saveTree(
         file.write("</style>\n")
         file.write("</head>\n")
         file.write("<body>\n")
-        ##
+        #
         file.write(f'<p><span class="folder">{escape(os.path.basename(pathToScan) or pathToScan)}</span></p>\n')
         for line in _walkTree(pathToScan, ""):
             file.write(line + "\n")
-        ##
+        #
         file.write("</body>\n")
         file.write("</html>\n")
